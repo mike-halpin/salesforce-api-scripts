@@ -1,7 +1,9 @@
 class SOQLStatement:
     def __init__(self, object_name, fields=[]):
         self.object_name = object_name
-        self.fields = fields
+        self.fields = field
+        self.where_conditions = []
+        self.order_by_fields = []
 
     def add_field(self, field):
         if field not in self.fields:
@@ -19,8 +21,6 @@ class SOQLStatement:
 class SelectSOQLStatement(SOQLStatement):
     def __init__(self, object_name, fields):
         super().__init__(object_name)
-        self.where_conditions = []
-        self.order_by_fields = []
 
     def add_condition(self, field, operator, value):
         self.where_conditions.append((field, operator, value))
