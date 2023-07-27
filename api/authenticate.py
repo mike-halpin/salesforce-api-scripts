@@ -1,6 +1,6 @@
 import requests
 from xml.etree import ElementTree as ET
-import environment as environment
+import utilities.environment as environment
 
 def authenticate_api(username, password, security_token, sandbox=False):
     endpoint = 'https://test.salesforce.com/services/Soap/u/58.0' if sandbox else 'https://login.salesforce.com/services/Soap/u/58.0'
