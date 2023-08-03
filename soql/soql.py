@@ -13,5 +13,5 @@ def get_count_of_fields_values(object_name, field_names):
     return format_soql(query_string)
 
 def get_most_common_values(object_name, field_name, groups_to_count=3):
-    query_string = f'SELECT {field_name}, COUNT(Id) FROM {object_name} GROUP BY {field_name} ORDER BY COUNT(Id) DESC LIMIT {groups_to_count}'
+    query_string = f'SELECT {field_name}, COUNT(Id) FROM {object_name} WHERE {field_name} != Null GROUP BY {field_name} ORDER BY COUNT(Id) DESC LIMIT {groups_to_count}'
     return format_soql(query_string)

@@ -2,6 +2,9 @@ import os
 import re
 import sys
 
+# Add the project root directory to the sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pandas as pd
 import requests
 from simple_salesforce import Salesforce
@@ -11,14 +14,12 @@ import analysis.dataframe as dataframe
 import salesforce.api.authenticate as authenticate
 from salesforce.api.request_response import ParsedResponse
 import salesforce.log_config as log_config
+import salesforce.soql.soql as soql
 import utilities.environment as environment
 import utilities.format as format
 
 # Configure logging
 logger = log_config.get_logger(__name__)
-
-# Add the project root directory to the sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 environment.load_environment_variables()
 
@@ -29,9 +30,9 @@ def run_query_using_requests(query_string):
     try:
         raw_response = requests.get(server_url.split('/services')[0] + '/services/data/v57.0/query', headers=headers, params=payload)
         parsed_response_dto = handle_response(raw_response, query_string)
-        logger.info("Response.text = %s", parsed_response_dto['responseText'])
+        logger.debug("Response.text = %s", parsed_response_dto.export_dto()['responseText'])
     except requests.exceptions.RequestException as e:
-        logger.error("Error occurred while querying Salesforce API: %s", e)
+        logger.warning("Error occurred while querying Salesforce API: %s", e)
         parsed_response_dto = {}
 
     return parsed_response_dto
@@ -59,23 +60,32 @@ def prepare_payload(query_string):
 
 def handle_response(response, query_string):
     responseDto = ParsedResponse(response, query_string)
-    return responseDto.export_dto()
+    return responseDto
 
-def modify_query_string(query_string, error_message, error_type):
-    error_patterns = {
+def removed_errored_fields(object_name, fields, error_message, error_type):
+    query_string = soql.get_count_of_fields_values(object_name, fields)
+    object_error_patters = {
+        'is_invalid': 'sObject type (.*?) is not supported.'  # INVALID_TYPE
+    }
+    field_error_patterns = {
             'is_invalid': 'Invalid field: \'(.*?)\'',
             'is_aggregate': 'field (.*?) does not support aggregate operator',
             }
-    field = next((re.search(pattern, error_message).group(1) for pattern in error_patterns.values() if re.search(pattern, error_message)), '')
+    field = next((re.search(pattern, error_message).group(1) for pattern in field_error_patterns.values() if re.search(pattern, error_message)), '')
     try:
         logger.info("Query string before modification: %s", query_string)
         logger.info("Field causing the issue: %s", field)
-        query_string = re.sub('\s*COUNT\(' + re.escape(field) + '\)?\,?\s*', ' ', query_string)
+        if field:
+            fields.remove(field)
     except TypeError as e:
         logger.error("Error occurred while modifying query string: %s", e)
     except AttributeError as e:
         logger.error("Error occurred while modifying query string: %s", e)
-    return query_string
+
+    # Last modifications: get rid of anything you know how to improve:
+    # 1. Remove any trailing commas before the FROM keyword
+    #query_string = re.sub('\,\s*FROM', ' FROM', query_string)
+    return fields
 
 def query_custom_objects_names():
     query_string = "SELECT Id, DeveloperName, NamespacePrefix FROM CustomObject"
