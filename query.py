@@ -1,22 +1,19 @@
 import os
 import re
 import sys
-
 # Add the project root directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import pandas as pd
 import requests
 from simple_salesforce import Salesforce
 from simple_salesforce.exceptions import SalesforceMalformedRequest
-
-import analysis.dataframe as dataframe
-import salesforce.api.authenticate as authenticate
-from salesforce.api.request_response import ParsedResponse
+import dataframe
+import salesforce.authenticate as authenticate
+from salesforce.request_response import ParsedResponse
 import salesforce.log_config as log_config
-import salesforce.soql.soql as soql
-import utilities.environment as environment
-import utilities.format as format
+import salesforce.soql as soql
+import environment
+import format
 
 # Configure logging
 logger = log_config.get_logger(__name__)
