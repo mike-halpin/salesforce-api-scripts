@@ -39,10 +39,12 @@ class ParsedResponse:
 
     def get_status_code(self):
         try:
-            return self._response.status_code
+            return int(self._response.status_code)
         except AttributeError as e:
             logger.error("AttributeError occurred: %s", e)
-            return '' 
+        except TypeError as e:
+            logger.error("TypeError occurred: %s", e)
+        return 0 
 
     def get_error_message(self):
         message = ''
@@ -58,11 +60,12 @@ class ParsedResponse:
 
     def get_error_code(self):
         code = ''
-        if not self.get_status_code() - 200 < 100: # 200-299 is success
-            try:
-                code = self._response.json()[0]['errorCode']
-            except (AttributeError, KeyError, IndexError, TypeError) as e:
-                logger.error("Error parsing errorCode from self, response: %s", e)
+        if self.get_status_code():
+            if not self.get_status_code() - 200 < 100: # 200-299 is success
+                try:
+                    code = self._response.json()[0]['errorCode']
+                except (AttributeError, KeyError, IndexError, TypeError) as e:
+                    logger.error("Error parsing errorCode from self, response: %s", e)
         return code
 
 
@@ -84,10 +87,11 @@ class ParsedResponse:
 
     def is_error(self):
         is_error = True
-        if self.get_status_code() - 200 < 100: # 200-299 is success
-            if self.get_error_code() == '' and self.get_error_message() == '':
-                is_error = False
-
+        if self.get_status_code():
+            logger.debug("Status code: %s", self.get_status_code())
+            if int(self.get_status_code()) - 200 < 100: # 200-299 is success
+                if self.get_error_code() == '' and self.get_error_message() == '':
+                    is_error = False
         return is_error
 
     def is_object_error(self):

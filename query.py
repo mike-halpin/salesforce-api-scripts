@@ -60,7 +60,6 @@ def handle_response(response, query_string):
     return responseDto
 
 def removed_errored_fields(object_name, fields, error_message, error_type):
-    query_string = soql.get_count_of_fields_values(object_name, fields)
     object_error_patters = {
         'is_invalid': 'sObject type (.*?) is not supported.'  # INVALID_TYPE
     }
@@ -70,6 +69,7 @@ def removed_errored_fields(object_name, fields, error_message, error_type):
             }
     field = next((re.search(pattern, error_message).group(1) for pattern in field_error_patterns.values() if re.search(pattern, error_message)), '')
     try:
+        query_string = soql.get_count_of_fields_values(object_name, fields)  # Get the query string before modification
         logger.info("Query string before modification: %s", query_string)
         logger.info("Field causing the issue: %s", field)
         if field:
