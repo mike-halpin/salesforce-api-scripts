@@ -90,9 +90,6 @@ def query_custom_objects_names():
 
     if records is not None:
         df = dataframe.convert_records_to_dataframe(records)
-        with open('blacklisted_objects_and_fields.txt', 'r') as f:
-            blacklisted_objects = f.read().splitlines()
-        df = df[~df['SObjectId'].isin(blacklisted_objects)]
         return df
     else:
         return None
@@ -103,9 +100,6 @@ def query_custom_field_names():
 
     if records is not None:
         df = dataframe.convert_records_to_dataframe(records)
-        with open('blacklisted_objects_and_fields.txt', 'r') as f:
-            blacklisted_objects = f.read().splitlines()
-        df = df[~df['FieldName'].isin(blacklisted_objects)]
         return df
     else:
         return None
@@ -180,20 +174,28 @@ def run_query_using_simple_salesforce(query):
 def get_custom_object_names():
     df = query_custom_objects_names()
     df = format.format_api_names_from_tooling_api(df)
-    return df['DeveloperName'].tolist()
+    sobjects = df['DeveloperName'].tolist()
+    with open('blacklisted_sobjects.txt', 'r') as f:
+        blacklisted_sobjects = f.read().splitlines()
+    sobjects = [sobject for sobject in sobjects if sobject not in blacklisted_sobjects]
+    return sobjects
 
 def get_custom_object_ids():
     df = query_custom_objects_names()
-    return df['Id'].tolist()
+    ids = df['Id'].tolist()
+    with open('blacklisted_sobjectids.txt', 'r') as f:
+        blacklisted_sobject_ids = f.read().splitlines()
+    sobject_ids = [sobject_id for sobject_id in ids if sobject_id not in blacklisted_sobject_ids]
+    return sobject_ids
 
 def get_custom_field_names():
-    field_names = query_custom_field_names()
-    field_names = format.format_api_names_from_tooling_api(field_names)
+    df = query_custom_field_names()
+    field_names = format.format_api_names_from_tooling_api(df)
     field_names = field_names['DeveloperName'].tolist()
-    with open('blacklisted_fields.txt', 'w') as f:
-        for field in field_names:
-            f.write(field + '\n')
-    return
+    with open('blacklisted_fields_for_aggregates.txt', 'r') as f:
+        blacklisted_fields = f.read().splitlines()
+    field_names = [field for field in field_names if field not in blacklisted_fields]
+    return field_names
 
 def match_custom_object_ids_to_field_names():
     fields = query_custom_field_names()
