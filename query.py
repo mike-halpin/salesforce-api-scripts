@@ -34,11 +34,11 @@ def run_query_using_requests(query_string):
 
     return parsed_response_dto
 
-def authenticate_and_get_session():
+def authenticate_and_get_session(sandbox=False):
     session_id, server_url = authenticate.authenticate_api(environment.get_salesforce_username(),
                                                            environment.get_salesforce_password(),
                                                            environment.get_salesforce_access_token(),
-                                                           sandbox=True)
+                                                           sandbox=sandbox)
     return session_id, server_url
 
 def create_headers(session_id):
@@ -90,6 +90,9 @@ def query_custom_objects_names():
 
     if records is not None:
         df = dataframe.convert_records_to_dataframe(records)
+        with open('blacklisted_objects_and_fields.txt', 'r') as f:
+            blacklisted_objects = f.read().splitlines()
+        df = df[~df['SObjectId'].isin(blacklisted_objects)]
         return df
     else:
         return None
@@ -100,6 +103,9 @@ def query_custom_field_names():
 
     if records is not None:
         df = dataframe.convert_records_to_dataframe(records)
+        with open('blacklisted_objects_and_fields.txt', 'r') as f:
+            blacklisted_objects = f.read().splitlines()
+        df = df[~df['FieldName'].isin(blacklisted_objects)]
         return df
     else:
         return None
@@ -108,7 +114,7 @@ def query_tooling_api(query, sandbox=False, is_tooling=True):
     session_id, server_url = authenticate.authenticate_api(environment.get_salesforce_username(),
                                                            environment.get_salesforce_password(),
                                                            environment.get_salesforce_access_token(),
-                                                           sandbox=True)
+                                                           sandbox=sandbox)
 
     if is_tooling:
         api_endpoint = server_url.split('/services')[0] + '/services/data/v58.0/tooling/query'
@@ -181,9 +187,13 @@ def get_custom_object_ids():
     return df['Id'].tolist()
 
 def get_custom_field_names():
-    df = query_custom_field_names()
-    df = format.format_api_names_from_tooling_api(df)
-    return df['DeveloperName'].tolist()
+    field_names = query_custom_field_names()
+    field_names = format.format_api_names_from_tooling_api(field_names)
+    field_names = field_names['DeveloperName'].tolist()
+    with open('blacklisted_fields.txt', 'w') as f:
+        for field in field_names:
+            f.write(field + '\n')
+    return
 
 def match_custom_object_ids_to_field_names():
     fields = query_custom_field_names()

@@ -5,7 +5,7 @@ def get_last_created_with_field(object_name, field_name):
     return format_soql(query_string)
 
 def get_count_of_field_value(object_name, field_name):
-    query_string = f'SELECT FieldName, COUNT(Id) FROM {object_name} GROUP BY {field_name} ORDER BY COUNT(Id)'
+    query_string = f"SELECT {field_name}, COUNT(Id) FROM {object_name} WHERE {field_name} != Null AND {field_name} != '' GROUP BY {field_name} ORDER BY COUNT(Id)"
     return format_soql(query_string)
 
 def get_count_of_fields_values(object_name, field_names):

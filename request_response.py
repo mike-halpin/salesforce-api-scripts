@@ -10,9 +10,8 @@ class ParsedResponse:
         self._response = response
         self._query_string = query_string
         self._fields = []
-
     def __str__(self):
-        return f"status_code: {self.status_code}\nerror_message: {self.error_message}\nerror_code: {self.error_code}\nresponse_text: {self.response_text}"
+        return f"status_code: {self.get_status_code()}\nerror_message: {self.get_error_message()}\nerror_code: {self.get_error_code()}\nresponse_text: {self.get_response_text()}"
 
     def export_dto(self):
         logger.debug("Exporting DTO")
@@ -22,11 +21,8 @@ class ParsedResponse:
         logger.debug('responseText: ' + str(self.get_response_text()))
         logger.debug('queryString: ' + str(self._query_string))
         logger.debug('hasError: ' + str(self.is_error()))
-        try:
-            records = self._response.json()['records']
-        except (AttributeError, KeyError, TypeError) as e:
-            logger.error("Error parsing records: %s", e)
-            records = {}
+        logger.debug('recordCount: ' + str(self.get_record_count()))
+        records = self.get_records()
         return {
             'records': records,
             'statusCode': self.get_status_code(),
@@ -34,7 +30,8 @@ class ParsedResponse:
             'errorCode': self.get_error_code(),
             'responseText': self.get_response_text(),
             'queryString': self._query_string,
-            'hasError': self.is_error()
+            'hasError': self.is_error(),
+            'recordCount': self.get_record_count()
         }
 
     def get_status_code(self):
@@ -153,6 +150,23 @@ class ParsedResponse:
             logger.error("Error {#eisag1} checking ParsedResponse()._response.json()['records'][0]['attributes']['type'] == 'AggregateResult', response: %s", e)
             raise e
         return is_aggregate
+
+    def get_records(self):
+        try:
+            records = self._response.json()['records']
+        except (AttributeError, KeyError, TypeError) as e:
+            logger.error("Error parsing records: %s", e)
+            records = {}
+        return records
+
+    def get_record_count(self):
+        """Returns the record count from a query result."""
+        record_count = 0
+        try:
+            record_count = self._response.json()['totalSize']
+        except TypeError as e:
+            logger.info("No records found: %s", e)
+        return record_count
 
 def extract_fields_from_query(query):
     """Extracts fields from a query string.
